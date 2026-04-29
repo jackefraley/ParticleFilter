@@ -248,8 +248,8 @@ def main():
         particles_history.append(particles.copy())
         sensor_history.append(sensor_pos.copy())
 
-        if i % 10 == 0:
-            plot_particles(particles, p_true, d_true, sensor_positions=np.array(sensor_positions), sensor_pos=sensor_pos)
+        #if i % 10 == 0:
+            #plot_particles(particles, p_true, d_true, sensor_positions=np.array(sensor_positions), sensor_pos=sensor_pos)
 
     # Final plot of particles after convergence, showing true wire position/direction
     #plot_particles(particles, p_true, d_true, sensor_positions=np.array(sensor_positions), sensor_pos=sensor_pos)
@@ -304,6 +304,7 @@ def main():
         ax.set_box_aspect([1,1,1])
 
     ani = FuncAnimation(fig, update, frames=len(particles_history), interval=100)
+    ani.save("pf.mp4", fps=10)
 
     plt.show()
 
