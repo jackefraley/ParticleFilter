@@ -108,8 +108,6 @@ def plot_particles(particles, true_p=None, true_d=None, sensor_positions=None, s
 # compares it to the measured voltage, and updates particle weights accordingly
 #################################################################################
 def update_particles(particles, weights, V_meas, sensor_pos):
-    # Current of the wire mA
-    I = 0.3
 
     # Number of particles
     N = particles.shape[0]
@@ -129,7 +127,7 @@ def update_particles(particles, weights, V_meas, sensor_pos):
     distance = np.linalg.norm(r_perp, axis=1) + 1e-12
 
     # Compute the predicted magnetic field vector at the sensor using Biot-Savart law
-    B_magnitude = I / distance
+    B_magnitude = 1 / distance
     B_direction = np.cross(d, r_perp)
     B_direction /= np.linalg.norm(B_direction, axis=1, keepdims=True) + 1e-12
     V_pred = B_magnitude[:, None] * B_direction
@@ -252,15 +250,15 @@ def main():
             #plot_particles(particles, p_true, d_true, sensor_positions=np.array(sensor_positions), sensor_pos=sensor_pos)
 
     # Final plot of particles after convergence, showing true wire position/direction
-    #plot_particles(particles, p_true, d_true, sensor_positions=np.array(sensor_positions), sensor_pos=sensor_pos)
+    plot_particles(particles, p_true, d_true, sensor_positions=np.array(sensor_positions), sensor_pos=sensor_pos)
 
-    #plt.figure()
-    #plt.plot(errors_history)
-    #plt.xlabel("Iteration")
-    #plt.ylabel("Mean Error")
-    #plt.title("Particle Filter Convergence")
-    #plt.grid(True)
-    #plt.show()
+    plt.figure()
+    plt.plot(errors_history)
+    plt.xlabel("Iteration")
+    plt.ylabel("Mean Error")
+    plt.title("Particle Filter Convergence")
+    plt.grid(True)
+    plt.show()
 
     t = np.linspace(-5, 5, 100)
     line = p_true[None, :] + t[:, None] * d_true[None, :]
@@ -304,7 +302,7 @@ def main():
         ax.set_box_aspect([1,1,1])
 
     ani = FuncAnimation(fig, update, frames=len(particles_history), interval=100)
-    ani.save("pf.mp4", fps=10)
+    #ani.save("pf.mp4", fps=10)
 
     plt.show()
 
