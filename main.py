@@ -223,10 +223,10 @@ def main():
             theta = 2 * np.pi - theta
 
         # Arc path in three dimensions
-        #sensor_pos = np.array([np.cos(theta) * 5, np.sin(theta) * 5, np.cos(theta) * 5])
+        sensor_pos = np.array([np.cos(theta) * 5, np.sin(theta) * 5, np.cos(theta) * 5])
 
         # Linear path along all three axes
-        sensor_pos = np.array([theta, theta, theta])
+        #sensor_pos = np.array([theta, theta, theta])
 
         sensor_positions.append(sensor_pos.copy())
 
@@ -237,7 +237,7 @@ def main():
             plot_particles(particles, p_true, d_true, sensor_positions=np.array(sensor_positions), sensor_pos=sensor_pos)
 
         # Add small noise to the measurement to simulate real-world conditions
-        noise = np.random.normal(0, 0.05, 3)
+        noise = np.random.normal(0, 0.1, 3)
         V_meas_noisy = V_meas + noise
         V_meas_noisy /= np.linalg.norm(V_meas_noisy)
 
