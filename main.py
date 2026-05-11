@@ -1,9 +1,8 @@
-import math
-from operator import pos
 import numpy as np
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
 from matplotlib.animation import FuncAnimation
+import socket
 
 GAIN = 1000.0
 
@@ -185,117 +184,152 @@ def generate_fake_measurement(sensor_pos, p_true, d_true, current):
 
 def main():
 
-    # Number of particles
-    N = 10000
-    current = 2
-    rounds = 50
+    MONTE_CARLO = False
+    NUM_TRIALS = 100 if MONTE_CARLO else 1
 
-    sensor_pos1 = np.array([0, 0, 0])
-    sensor_pos2 = np.array([2, 0, 0])
+    pos_error_list = []
+    dir_error_list = []
 
-    # Store the history of static refinement for plotting convergence
-    errors_history = []
-    best_error_history = []
-    sigma_history = []
-    particles_history = []
+    for k in range(NUM_TRIALS):
 
-    # Randomly generate a wire position and direction
-    p_true = np.random.uniform(-10, 10, 3)
-    d_true = np.random.uniform(-1, 1, 3)
-    d_true /= np.linalg.norm(d_true)
-    p_true = p_true - np.dot(p_true, d_true) * d_true
+        # Number of particles
+        N = 10000
+        current = 2
+        rounds = 100
 
-    V_meas1, _ = generate_fake_measurement(sensor_pos1, p_true, d_true, current)
-    V_meas2, _ = generate_fake_measurement(sensor_pos2, p_true, d_true, current)
+        sensor_pos1 = np.array([0, 0, 0])
+        sensor_pos2 = np.array([2, 0, 0])
 
-    # Initialize particles once, then repeatedly refine them using the same
-    # fixed two-sensor snapshot.
-    particles = initialize_particles(N)
-    particles_history.append(particles.copy())
+        # Store the history of static refinement for plotting convergence
+        errors_history = []
+        best_error_history = []
+        sigma_history = []
+        particles_history = []
 
-    plot_particles(particles, p_true, d_true, sensor_pos1, sensor_pos2)
+        # Randomly generate a wire position and direction
+        p_true = np.random.uniform(-10, 10, 3)
+        d_true = np.random.uniform(-1, 1, 3)
+        d_true /= np.linalg.norm(d_true)
+        p_true = p_true - np.dot(p_true, d_true) * d_true
 
-    for i in range(rounds):
-        alpha = i / max(rounds - 1, 1)
-        sigma = (0.2 - 0.18 * alpha) * GAIN
-        position_noise = 0.4 - 0.35 * alpha
-        direction_noise = 0.05 - 0.04 * alpha
+        V_meas1, _ = generate_fake_measurement(sensor_pos1, p_true, d_true, current)
+        V_meas2, _ = generate_fake_measurement(sensor_pos2, p_true, d_true, current)
 
-        particles, mean_error, best_error, _ = update_particles(
-            particles,
-            V_meas1,
-            V_meas2,
-            sensor_pos1,
-            sensor_pos2,
-            current=current,
-            sigma=sigma,
-            position_noise=position_noise,
-            direction_noise=direction_noise,
-        )
-        errors_history.append(mean_error)
-        best_error_history.append(best_error)
-        sigma_history.append(sigma)
+        # Initialize particles once, then repeatedly refine them using the same
+        # fixed two-sensor snapshot.
+        particles = initialize_particles(N)
         particles_history.append(particles.copy())
 
-    # Final plot of particles after convergence, showing true wire position/direction
-    plot_particles(particles, p_true, d_true, sensor_pos1, sensor_pos2)
+        #plot_particles(particles, p_true, d_true, sensor_pos1, sensor_pos2)
 
-    plt.figure()
-    plt.plot(errors_history, label="Mean Error")
-    plt.plot(best_error_history, label="Best Error")
-    plt.plot(sigma_history, label="Sigma")
-    plt.xlabel("Refinement Round")
-    plt.ylabel("Static Search Score")
-    plt.title("Static Two-Sensor Particle Refinement")
-    plt.legend()
-    plt.grid(True)
-    plt.show()
+        for i in range(rounds):
+            alpha = i / max(rounds - 1, 1)
+            sigma = (0.2 - 0.18 * alpha) * GAIN
+            position_noise = 0.4 - 0.35 * alpha
+            direction_noise = 0.05 - 0.04 * alpha
 
-    t = np.linspace(-10, 10, 100)
-    line = p_true[None, :] + t[:, None] * d_true[None, :]
+            particles, mean_error, best_error, _ = update_particles(
+                particles,
+                V_meas1,
+                V_meas2,
+                sensor_pos1,
+                sensor_pos2,
+                current=current,
+                sigma=sigma,
+                position_noise=position_noise,
+                direction_noise=direction_noise,
+            )
 
-    fig = plt.figure()
-    ax = fig.add_subplot(111, projection='3d')
+            errors_history.append(mean_error)
+            best_error_history.append(best_error)
+            sigma_history.append(sigma)
+            particles_history.append(particles.copy())
 
-    def update(frame):
-        ax.cla()
-
-        particles = particles_history[frame]
-
-        x = particles[:, 0]
-        y = particles[:, 1]
-        z = particles[:, 2]
-
-        dx = particles[:, 3]
-        dy = particles[:, 4]
-        dz = particles[:, 5]
-
-        ax.scatter(x, y, z, s=5, alpha=0.5)
-        ax.quiver(x, y, z, dx, dy, dz, length=0.2, alpha=0.3)
-
-        # sensor
-        ax.scatter(*sensor_pos1, color='black', s=50, marker='x')
-        ax.scatter(*sensor_pos2, color='black', s=50, marker='x')
-
-        # mean arrow (fixed version)
         mean_pos = np.mean(particles[:, 0:3], axis=0)
-        direction = mean_pos - sensor_pos1
-        ax.quiver(*sensor_pos1, *direction, color='blue')
+        mean_dir = np.mean(particles[:, 3:6], axis=0)
+        mean_dir /= np.linalg.norm(mean_dir)
 
-        ax.plot(line[:, 0], line[:, 1], line[:, 2],
-            color='red', linewidth=3)
-        
-        ax.scatter(*p_true, color='red', s=50)
+        pos_error_list.append(np.linalg.norm(mean_pos - p_true))
+        dir_error_deg = np.degrees(np.arccos(np.clip(abs(np.dot(mean_dir, d_true)), 0, 1)))
+        dir_error_list.append(dir_error_deg)
 
-        ax.set_xlim(-10, 10)
-        ax.set_ylim(-10, 10)
-        ax.set_zlim(-10, 10)
-        ax.set_box_aspect([1,1,1])
+    pos = np.array(pos_error_list)
+    dir_arr = np.array(dir_error_list)
 
-    ani = FuncAnimation(fig, update, frames=len(particles_history), interval=100)
-    #ani.save("pf.mp4", fps=10)
+    print(f"Position error — median: {np.median(pos):.4f}, mean: {np.mean(pos):.4f}")
+    print(f"Direction error — median: {np.median(dir_arr):.4f}°, mean: {np.mean(dir_arr):.4f}°")
+    print(f"Convergence rate (pos<0.1, dir<1°): {np.mean((pos<0.1) & (dir_arr<1)):.0%}")
+    print(f"Convergence rate (pos<1.0, dir<5°): {np.mean((pos<1.0) & (dir_arr<5)):.0%}")
 
-    plt.show()
+    # Show the distribution
+    print("\nPosition error percentiles:")
+    for p in [10, 25, 50, 75, 90, 95, 99]:
+        print(f"  p{p}: {np.percentile(pos, p):.4f}")
+
+    if not MONTE_CARLO:
+        # Final plot of particles after convergence, showing true wire position/direction
+        plot_particles(particles, p_true, d_true, sensor_pos1, sensor_pos2)
+
+        plt.figure()
+        plt.plot(errors_history, label="Mean Error")
+        plt.plot(best_error_history, label="Best Error")
+        plt.plot(sigma_history, label="Sigma")
+        plt.xlabel("Refinement Round")
+        plt.ylabel("Error / Sigma")
+        plt.title("Static Two-Sensor Particle Filter Convergence")
+        plt.legend()
+        plt.grid(True)
+        plt.show()
+
+        t = np.linspace(-10, 10, 100)
+        line = p_true[None, :] + t[:, None] * d_true[None, :]
+
+        fig = plt.figure()
+        ax = fig.add_subplot(111, projection='3d')
+
+        def update(frame):
+            ax.cla()
+
+            particles = particles_history[frame]
+
+            x = particles[:, 0]
+            y = particles[:, 1]
+            z = particles[:, 2]
+
+            dx = particles[:, 3]
+            dy = particles[:, 4]
+            dz = particles[:, 5]
+
+            #ax.scatter(x, y, z, s=5, alpha=0.5)
+            #ax.quiver(x, y, z, dx, dy, dz, length=0.2, alpha=0.3)
+
+            # sensor
+            ax.scatter(*sensor_pos1, color='black', s=50, marker='x')
+            ax.scatter(*sensor_pos2, color='black', s=50, marker='x')
+
+            # mean arrow (fixed version)
+            mean_pos = np.mean(particles[:, 0:3], axis=0)
+            direction = mean_pos - sensor_pos1
+            ax.quiver(*sensor_pos1, *direction, color='blue')
+
+            ax.plot(line[:, 0], line[:, 1], line[:, 2], color='red', linewidth=3)
+            
+            ax.scatter(*p_true, color='red', s=50)
+
+            ax.set_xlim(-10, 10)
+            ax.set_ylim(-10, 10)
+            ax.set_zlim(-10, 10)
+            ax.set_box_aspect([1,1,1])
+
+        ani = FuncAnimation(fig, update, frames=len(particles_history), interval=10)
+        ani.save("pf.mp4", fps=10)
+
+        plt.show()
+
+    if MONTE_CARLO:
+
+        print(f"Final position error: {np.mean(pos_error_list):.3f}")
+        print(f"Final direction error: {np.mean(dir_error_list):.3f} degrees")
 
     return 0    
 
