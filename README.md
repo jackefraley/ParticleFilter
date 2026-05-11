@@ -6,7 +6,7 @@ A particle filter that estimates 3D position and direction of a current carrying
 
 The state of the wire is represented using its 3D position and 3D direction vector. Each particle proposes a hypothesis for the true location and direction of the cable. For every iteration the system takes in a magnetic field measurement and weights each particle based on how similar the estimated magnetic field reading is compared to the true reading. After weights are assigned, a new set particles are drawn from the probability distribution of weights making higher weighted particles more likely to be redrawn multiple times. Finally, propagation noise is added to prevent population collapse and weights are all reset to be uniform. 
 
-Because a line in 3D space has no preferred point along its axis, particle positions are canonicalized onto the plane perpendicular to the particles direction vector at every step. This removes a redundant degree of freedom that would otherwise make the likelihood ill defined. 
+Because a line in 3D is the same no matter what point is chosen as the reference, particle positions are canonicalized onto the plane perpendicular to the particles direction vector at every step. This removes a redundant degree of freedom that would otherwise make the likelihood ill defined. 
 
 ## Results (static two sensor)
 
