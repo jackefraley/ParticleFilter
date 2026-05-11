@@ -39,7 +39,7 @@ When the sensor movement data proved unavailable from the capstone hardware, the
 
 ## Robustness to Sensor Position Drift
 
-The sensor telemetry was ially going to be tracked using a 6 axis imu so small errors in positioning would compound over time. To verify the system would still function given this possibility of noise in the position data, drift was accounted for in the sweep simulations. 
+The sensor telemetry was originally going to be tracked using a 6 axis imu so small errors in positioning would compound over time. To verify the system would still function given this possibility of noise in the position data, drift was accounted for in the sweep simulations. 
 
 <img width="250" alt="image" src="https://github.com/user-attachments/assets/0af25d67-6174-45c9-b6f0-58321af81c13" />
 <img width="250" alt="image" src="https://github.com/user-attachments/assets/b7f14135-8031-493d-8913-63dcf1a0308e" />
